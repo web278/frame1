@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Art Display</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000;
+            color: #fff;
+            overflow: hidden;
+            transition: background-color 0.5s ease-in-out;
+        }
+
+        #fullscreenButton,
+        #artSelector,
+        #modeButton,
+        #settingsButton,
+        #randomButton {
+            position: fixed;
+            padding: 10px;
+            cursor: pointer;
+            border: none;
+            opacity: 0.8;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: transform 0.3s ease-in-out;
+            z-index: 2; /* Ensure buttons are above overlay */
+        }
+
+        #fullscreenButton {
+            top: 10px;
+            right: 10px;
+        }
+
+        #artSelector {
+            top: 10px;
+            left: 10px;
+        }
+
+        #modeButton {
+            top: 60px;
+            left: 10px;
+        }
+
+        #settingsButton {
+            top: 110px;
+            left: 10px;
+        }
+
+        #randomButton {
+            top: 160px;
+            left: 10px;
+        }
+
+        #artDropdown,
+        #modeDropdown,
+        #settingsDropdown {
+            background-color: #333;
+            color: #fff;
+            padding: 8px;
+            border-radius: 10px;
+            opacity: 0.8;
+            font-size: 14px;
+            z-index: 2; /* Ensure dropdowns are above overlay */
+        }
+
+        #artContainer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            transition: transform 0.5s ease-in-out;
+            position: relative;
+            z-index: 1; /* Ensure image is below overlay */
+            overflow: hidden;
+        }
+
+        img {
+            max-width: calc(100% - 20px); /* Adjusted for the frame */
+            max-height: calc(100% - 20px); /* Adjusted for the frame */
+            object-fit: cover; /* Zoom to fill while maintaining aspect ratio */
+            transition: transform 0.5s ease-in-out, filter 0.5s ease-in-out;
+            border-radius: 10px;
+            border: 5px solid #333; /* Frame color */
+        }
+
+        img:hover {
+            transform: scale(1.05);
+        }
+
+        .fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7); /* semi-transparent black */
+            display: none;
+            border-radius: 15px; /* Rounded corners for the fullscreen overlay */
+            z-index: 0; /* Ensure overlay is below buttons and dropdowns */
+        }
+
+        body.fullscreen .fullscreen-overlay {
+            display: block;
+        }
+
+        body.fullscreen #fullscreenButton,
+        body.fullscreen #artSelector,
+        body.fullscreen #modeButton,
+        body.fullscreen #settingsButton,
+        body.fullscreen #randomButton {
+            display: none;
+        }
+
+        /* Dark Mode */
+        body.dark-mode {
+            background-color: #111;
+            color: #fff;
+        }
+
+        .dark-mode #artDropdown,
+        .dark-mode #modeDropdown,
+        .dark-mode #settingsDropdown,
+        .dark-mode #fullscreenButton,
+        .dark-mode #artSelector,
+        .dark-mode #modeButton,
+        .dark-mode #settingsButton,
+        .dark-mode #randomButton {
+            background-color: #222;
+            color: #fff;
+        }
+
+        .dark-mode .fullscreen-overlay {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        /* Clock in the corner */
+        #clock {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            font-size: 18px;
+            z-index: 3; /* Above overlay and buttons */
+        }
+
+        /* Greeting based on time of day */
+        #greeting {
+            position: fixed;
+            bottom: 40px;
+            right: 10px;
+            font-size: 16px;
+            z-index: 3; /* Above overlay and buttons */
+        }
+
+        /* Settings Menu */
+        #settingsMenu {
+            position: fixed;
+            top: 110px;
+            left: 120px;
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            display: none;
+            z-index: 2; /* Ensure menu is above overlay and buttons */
+        }
+
+        #settingsMenu label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        #settingsMenu input {
+            margin-bottom: 10px;
+            padding: 5px;
+            border-radius: 5px;
+            background-color: #444;
+            color: #fff;
+            border: none;
+        }
+
+        #settingsMenu button {
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            background-color: #444;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        /* Randomize Button Animation */
+        #randomButton:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="fullscreen-overlay"></div>
+    <div id="fullscreenButton" onclick="toggleFullscreen()">Toggle Fullscreen</div>
+    <div id="artSelector">
+        <label for="artDropdown">Choose Artwork:</label>
+        <select id="artDropdown" onchange="changeArt()">
+            <!-- Options will be dynamically added through JavaScript -->
+        </select>
+    </div>
+    <div id="modeButton" onclick="toggleDarkMode()">Toggle Dark Mode</div>
+    <div id="settingsButton" onclick="toggleSettingsMenu()">Settings</div>
+    <div id="randomButton" onclick="randomizeArt()">Randomize</div>
+    <div id="artContainer">
+        <img id="displayedImage" src="" alt="Artwork">
+    </div>
+    <div id="clock"></div>
+    <div id="greeting"></div>
+    <div id="settingsMenu">
+        <label for="brightnessInput">Adjust Brightness:</label>
+        <input type="range" id="brightnessInput" min="50" max="150" step="1" value="100" oninput="adjustBrightness()">
+        <label for="contrastInput">Adjust Contrast:</label>
+        <input type="range" id="contrastInput" min="50" max="150" step="1" value="100" oninput="adjustContrast()">
+        <button onclick="resetFilters()">Reset Filters</button>
+    </div>
+
+    <script>
+        function toggleFullscreen() {
+            const body = document.body;
+            const overlay = document.querySelector('.fullscreen-overlay');
+            const fullscreenButton = document.getElementById('fullscreenButton');
+            const artSelector = document.getElementById('artSelector');
+            const modeButton = document.getElementById('modeButton');
+            const settingsButton = document.getElementById('settingsButton');
+            const randomButton = document.getElementById('randomButton');
+
+            if (!document.fullscreenElement) {
+                body.requestFullscreen();
+                body.classList.add('fullscreen');
+                overlay.style.display = 'block';
+                fullscreenButton.style.display = 'none';
+                artSelector.style.display = 'none';
+                modeButton.style.display = 'none';
+                settingsButton.style.display = 'none';
+                randomButton.style.display = 'none';
+                // Automatically dim the screen in fullscreen mode
+                body.style.transition = 'filter 0.5s ease-in-out';
+                body.style.filter = 'brightness(70%)';
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                    body.classList.remove('fullscreen');
+                    overlay.style.display = 'none';
+                    fullscreenButton.style.display = 'block';
+                    artSelector.style.display = 'block';
+                    modeButton.style.display = 'block';
+                    settingsButton.style.display = 'block';
+                    randomButton.style.display = 'block';
+                    // Restore normal brightness on exit fullscreen
+                    body.style.transition = 'filter 0.5s ease-in-out';
+                    body.style.filter = 'brightness(100%)';
+                }
+            }
+        }
+
+        function changeArt() {
+            const dropdown = document.getElementById('artDropdown');
+            const selectedArtwork = dropdown.value;
+            const displayedImage = document.getElementById('displayedImage');
+            displayedImage.src = selectedArtwork;
+        }
+
+        function toggleDarkMode() {
+            const body = document.body;
+            body.classList.toggle('dark-mode');
+        }
+
+        function toggleSettingsMenu() {
+            const settingsMenu = document.getElementById('settingsMenu');
+            settingsMenu.style.display = (settingsMenu.style.display === 'block') ? 'none' : 'block';
+        }
+
+        function randomizeArt() {
+            const dropdown = document.getElementById('artDropdown');
+            const randomIndex = Math.floor(Math.random() * dropdown.options.length);
+            dropdown.selectedIndex = randomIndex;
+            changeArt();
+        }
+
+        function adjustBrightness() {
+            const brightnessInput = document.getElementById('brightnessInput');
+            const brightnessValue = brightnessInput.value;
+            document.body.style.filter = `brightness(${brightnessValue}%)`;
+        }
+
+        function adjustContrast() {
+            const contrastInput = document.getElementById('contrastInput');
+            const contrastValue = contrastInput.value;
+            document.getElementById('displayedImage').style.filter = `contrast(${contrastValue}%)`;
+        }
+
+        function resetFilters() {
+            document.body.style.filter = 'brightness(100%)';
+            document.getElementById('displayedImage').style.filter = 'contrast(100%)';
+            document.getElementById('brightnessInput').value = 100;
+            document.getElementById('contrastInput').value = 100;
+        }
+
+        // Replace 'YOUR_UNSPLASH_ACCESS_KEY' with your actual Unsplash access key
+        const unsplashAccessKey = x;
+
+        // Fetch random oil painting images from Unsplash and populate the dropdown
+        fetch(`https://api.unsplash.com/photos/random?query=oil painting&count=15&client_id=${unsplashAccessKey}`)
+            .then(response => response.json())
+            .then(data => {
+                const dropdown = document.getElementById('artDropdown');
+
+                // Check if data is an array
+                if (Array.isArray(data)) {
+                    // Populate the dropdown with fetched image URLs
+                    data.forEach(image => {
+                        const option = document.createElement('option');
+                        option.value = image.urls.regular;
+                        option.text = image.alt_description || 'Artwork';
+                        dropdown.add(option);
+                    });
+                } else {
+                    console.error('Error: The response data is not an array.');
+                }
+            })
+            .catch(error => console.error('Error fetching images from Unsplash:', error));
+
+        // Clock update
+        function updateClock() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('clock').textContent = `${hours}:${minutes}`;
+        }
+
+        // Update clock every minute
+        setInterval(updateClock, 60000);
+
+        // Greeting update
+        function updateGreeting() {
+            const now = new Date();
+            const hours = now.getHours();
+            let greeting = 'Good ';
+
+            if (hours < 12) {
+                greeting += 'Morning';
+            } else if (hours < 18) {
+                greeting += 'Afternoon';
+            } else {
+                greeting += 'Evening';
+            }
+
+            document.getElementById('greeting').textContent = greeting;
+        }
+
+        // Update greeting every hour
+        setInterval(updateGreeting, 3600000);
+
+        // Listen for the 'keydown' event to detect the Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const fullscreenButton = document.getElementById('fullscreenButton');
+                const artSelector = document.getElementById('artSelector');
+                const modeButton = document.getElementById('modeButton');
+                const settingsButton = document.getElementById('settingsButton');
+                const randomButton = document.getElementById('randomButton');
+                const settingsMenu = document.getElementById('settingsMenu');
+
+                // Toggle the visibility of buttons and menu when pressing Escape
+                fullscreenButton.style.display = 'block';
+                artSelector.style.display = 'block';
+                modeButton.style.display = 'block';
+                settingsButton.style.display = 'block';
+                randomButton.style.display = 'block';
+                settingsMenu.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
